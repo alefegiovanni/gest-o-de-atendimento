@@ -29,16 +29,26 @@ export default function SimpleManagerDashboard() {
       const token = localStorage.getItem('token');
       const res = await fetch(`/api/records/${recordId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao apagar registro');
+      
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (e) {
+        // ignore
+      }
+
+      if (!res.ok) throw new Error(data.error || `Erro ${res.status}: Falha ao apagar registro`);
 
       // Atualiza a lista do modal
       setSellerRecords(prev => prev.filter(r => r.id !== recordId));
       fetchDashboardData();
     } catch (err) {
-      alert('Erro: ' + (err.message || 'Falha ao excluir'));
+      alert(err.message || 'Falha ao excluir registro');
     }
   };
 
