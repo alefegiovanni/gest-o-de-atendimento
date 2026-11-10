@@ -610,10 +610,10 @@ export default function SimpleManagerDashboard() {
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {sellerRecords.slice(0, 15).map(rec => (
-                  <div
-                    key={rec.id}
-                    style={{
-                      display: 'flex',
+                  <React.Fragment key={rec.id}>
+                    <div
+                      style={{
+                        display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       padding: '10px 14px',
@@ -660,6 +660,21 @@ export default function SimpleManagerDashboard() {
                       </button>
                     </div>
                   </div>
+                  {rec.observacao && (
+                    <div style={{
+                      marginTop: '4px',
+                      marginBottom: '6px',
+                      padding: '6px 12px',
+                      backgroundColor: (rec.vendas || 0) > 0 ? '#fffbeb' : '#f8fafc',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      color: (rec.vendas || 0) > 0 ? '#92400e' : '#64748b',
+                      borderLeft: (rec.vendas || 0) > 0 ? '3px solid #f59e0b' : '3px solid #cbd5e1'
+                    }}>
+                      <strong>{(rec.vendas || 0) > 0 ? '⭐ Obs Negócio Fechado (NF):' : 'Obs:'}</strong> {rec.observacao}
+                    </div>
+                  )}
+                </React.Fragment>
                 ))}
                 {sellerRecords.length === 0 && (
                   <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>Sem histórico disponível.</p>

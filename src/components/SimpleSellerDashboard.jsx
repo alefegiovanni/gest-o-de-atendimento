@@ -280,24 +280,63 @@ export default function SimpleSellerDashboard({ user }) {
             </div>
           </div>
 
-          <div style={{ marginBottom: '22px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
-              Observação rápida (opcional)
+          {/* Observação comum ou Detalhamento obrigatório de NF */}
+          <div style={{
+            marginBottom: '22px',
+            padding: Number(vendas) > 0 ? '16px' : '0',
+            backgroundColor: Number(vendas) > 0 ? '#fffbeb' : 'transparent',
+            borderRadius: Number(vendas) > 0 ? '12px' : '0',
+            border: Number(vendas) > 0 ? '1.5px solid #fde68a' : 'none',
+            transition: 'all 0.2s ease'
+          }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '13px',
+              fontWeight: '700',
+              color: Number(vendas) > 0 ? '#b45309' : '#334155',
+              marginBottom: '6px'
+            }}>
+              <span>
+                {Number(vendas) > 0 
+                  ? '⭐ Detalhes dos Negócios Fechados (Obrigatório informar)' 
+                  : 'Observação rápida (opcional)'}
+              </span>
+              {Number(vendas) > 0 && (
+                <span style={{ fontSize: '11px', backgroundColor: '#fef3c7', padding: '2px 8px', borderRadius: '6px' }}>
+                  NF Fechado!
+                </span>
+              )}
             </label>
-            <input
-              type="text"
-              placeholder="Ex: 3 clientes pediram proposta para amanhã"
+            <textarea
+              rows={Number(vendas) > 0 ? 3 : 2}
+              required={Number(vendas) > 0}
+              placeholder={Number(vendas) > 0 
+                ? "Informe os detalhes da venda (Ex: Cliente João Silva, cota de R$ 150.000 consórcio imobiliário, entrada paga)." 
+                : "Ex: 3 clientes pediram proposta para amanhã..."}
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
               style={{
                 width: '100%',
                 padding: '10px 14px',
                 borderRadius: '8px',
-                border: '1px solid #cbd5e1',
+                border: Number(vendas) > 0 ? '1.5px solid #f59e0b' : '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
                 fontSize: '14px',
-                outline: 'none'
+                color: '#0f2d59',
+                outline: 'none',
+                resize: 'vertical',
+                fontFamily: 'inherit'
               }}
+              onFocus={(e) => e.target.style.borderColor = Number(vendas) > 0 ? '#d97706' : '#0070f3'}
+              onBlur={(e) => e.target.style.borderColor = Number(vendas) > 0 ? '#f59e0b' : '#cbd5e1'}
             />
+            {Number(vendas) > 0 && (
+              <small style={{ color: '#b45309', fontSize: '11px', marginTop: '4px', display: 'block', fontWeight: '600' }}>
+                Descreva acima o nome do cliente ou detalhes do negócio fechado para visualização da gerência.
+              </small>
+            )}
           </div>
 
           <button
@@ -348,53 +387,68 @@ export default function SimpleSellerDashboard({ user }) {
           )}
 
           {displayedHistory.map(h => (
-            <div
-              key={h.id}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px 14px',
-                borderRadius: '10px',
-                backgroundColor: '#f8fafc',
-                fontSize: '13px',
-                border: '1px solid #f1f5f9'
-              }}
-            >
-              <span style={{ fontWeight: '700', color: '#334155' }}>
-                {h.data.split('-').reverse().join('/')}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <span style={{ color: '#64748b' }}>
-                  Contatos: <strong style={{ color: '#0f2d59' }}>{h.contatos}</strong>
+            <React.Fragment key={h.id}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  backgroundColor: '#f8fafc',
+                  fontSize: '13px',
+                  border: '1px solid #f1f5f9'
+                }}
+              >
+                <span style={{ fontWeight: '700', color: '#334155' }}>
+                  {h.data.split('-').reverse().join('/')}
                 </span>
-                <span style={{ color: '#64748b' }}>
-                  Atendimentos: <strong style={{ color: '#059669' }}>{h.atendimentos}</strong>
-                </span>
-                <span style={{ color: '#64748b' }}>
-                  NF: <strong style={{ color: '#15803d' }}>{h.vendas || 0}</strong>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteRecord(h.id, h.data)}
-                  title="Excluir este lançamento"
-                  style={{
-                    border: 'none',
-                    background: 'transparent',
-                    color: '#94a3b8',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    borderRadius: '4px',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <span style={{ color: '#64748b' }}>
+                    Contatos: <strong style={{ color: '#0f2d59' }}>{h.contatos}</strong>
+                  </span>
+                  <span style={{ color: '#64748b' }}>
+                    Atendimentos: <strong style={{ color: '#059669' }}>{h.atendimentos}</strong>
+                  </span>
+                  <span style={{ color: '#64748b' }}>
+                    NF: <strong style={{ color: '#15803d' }}>{h.vendas || 0}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteRecord(h.id, h.data)}
+                    title="Excluir este lançamento"
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      borderRadius: '4px',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
-            </div>
+              {h.observacao && (
+                <div style={{
+                  marginTop: '4px',
+                  marginBottom: '4px',
+                  padding: '6px 12px',
+                  backgroundColor: h.vendas > 0 ? '#fffbeb' : '#f1f5f9',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  color: h.vendas > 0 ? '#92400e' : '#475569',
+                  borderLeft: h.vendas > 0 ? '3px solid #f59e0b' : '3px solid #94a3b8'
+                }}>
+                  <strong>{h.vendas > 0 ? 'Obs Venda / NF:' : 'Obs:'}</strong> {h.observacao}
+                </div>
+              )}
+            </React.Fragment>
           ))}
         </div>
 
