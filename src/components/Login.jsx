@@ -139,28 +139,35 @@ export default function Login({ onLoginSuccess }) {
         {/* Header visual */}
         <div style={{
           backgroundColor: '#0f2d59',
-          padding: '32px 28px',
+          padding: '28px 24px 24px',
           color: '#ffffff',
           textAlign: 'center',
           position: 'relative',
-          borderBottom: '4px solid #10b981'
+          borderBottom: '4px solid #d4af37'
         }}>
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '56px',
-            height: '56px',
-            borderRadius: '16px',
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            marginBottom: '16px'
+            marginBottom: '12px'
           }}>
-            <ShieldCheck size={32} color="#10b981" />
+            <img 
+              src="/magnus-logo.jpg" 
+              alt="Magnus Logo" 
+              style={{
+                width: '96px',
+                height: '96px',
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '3px solid #d4af37',
+                boxShadow: '0 4px 15px rgba(212, 175, 55, 0.35)'
+              }} 
+            />
           </div>
           <h1 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px', margin: 0 }}>
-            Gestão de Atendimento
+            Gestão de Atendimento Magnus
           </h1>
-          <p style={{ fontSize: '14px', color: '#94a3b8', marginTop: '6px' }}>
+          <p style={{ fontSize: '13px', color: '#cbd5e1', marginTop: '6px' }}>
             {isChangingCode ? 'Primeiro Acesso / Alterar Código' : 'Acompanhe seus resultados todos os dias.'}
           </p>
         </div>

@@ -47,7 +47,7 @@ export default function App() {
   if (loading) {
     return (
       <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#0f2d59', fontWeight: '700' }}>Carregando Gestão de Atendimento...</p>
+        <p style={{ color: '#0f2d59', fontWeight: '700' }}>Carregando Gestão de Atendimento Magnus...</p>
       </div>
     );
   }
@@ -82,18 +82,22 @@ export default function App() {
           gap: '12px'
         }}>
           {/* Logo e Nome */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.12)',
-              borderRadius: '10px',
-              padding: '8px',
-              display: 'flex'
-            }}>
-              <ShieldCheck size={24} color="#10b981" />
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <img 
+              src="/magnus-logo.jpg" 
+              alt="Magnus Logo" 
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '2px solid #d4af37',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+              }} 
+            />
             <div>
               <h1 style={{ fontSize: '18px', fontWeight: '800', margin: 0, letterSpacing: '-0.3px' }}>
-                Gestão de Atendimento
+                Gestão de Atendimento Magnus
               </h1>
               <span style={{ fontSize: '11px', color: '#94a3b8' }}>
                 Consórcios & Produtividade Comercial
@@ -272,7 +276,7 @@ export default function App() {
         fontSize: '12px',
         color: '#64748b'
       }}>
-        Gestão de Atendimento • Sistema de Produtividade em Consórcios • {new Date().getFullYear()}
+        Gestão de Atendimento Magnus • Sistema de Produtividade em Consórcios • {new Date().getFullYear()}
       </footer>
 
       {/* Modal Alterar Código (Normal ou Forçado no Primeiro Acesso) */}
