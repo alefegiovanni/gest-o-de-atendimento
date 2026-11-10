@@ -51,16 +51,26 @@ export default function SimpleManagerDashboard() {
       const token = localStorage.getItem('token');
       const res = await fetch(`/api/manager/records/seller/${seller.user_id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao apagar registros');
+      
+      let data = {};
+      try {
+        data = await res.json();
+      } catch(e) {
+        // ignore parse error if empty
+      }
 
-      alert(data.message);
+      if (!res.ok) throw new Error(data.error || `Erro ${res.status}: Não foi possível apagar os registros`);
+
+      alert(data.message || 'Lançamentos apagados com sucesso!');
       setSelectedSeller(null);
       fetchDashboardData();
     } catch (err) {
-      alert('Erro: ' + (err.message || 'Falha ao excluir'));
+      alert(err.message || 'Erro ao apagar registros');
     }
   };
 
@@ -73,16 +83,26 @@ export default function SimpleManagerDashboard() {
       const token = localStorage.getItem('token');
       const res = await fetch('/api/manager/records/all', {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao zerar histórico');
 
-      alert(data.message);
+      let data = {};
+      try {
+        data = await res.json();
+      } catch(e) {
+        // ignore
+      }
+
+      if (!res.ok) throw new Error(data.error || `Erro ${res.status}: Não foi possível zerar o histórico`);
+
+      alert(data.message || 'Histórico zerado com sucesso!');
       setSelectedSeller(null);
       fetchDashboardData();
     } catch (err) {
-      alert('Erro: ' + (err.message || 'Falha ao zerar'));
+      alert(err.message || 'Erro ao zerar histórico');
     }
   };
 
