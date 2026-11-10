@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Calendar, Clock, PhoneCall, MessageSquare, ChevronRight, X, ArrowUpRight } from 'lucide-react';
+import { Users, Calendar, Clock, PhoneCall, MessageSquare, ChevronRight, X, ArrowUpRight, Trash2, AlertTriangle } from 'lucide-react';
 import { Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -17,6 +17,53 @@ export default function SimpleManagerDashboard() {
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [sellerRecords, setSellerRecords] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [feedback, setFeedback] = useState('');
+
+  const handleDeleteSellerAllRecords = async (seller) => {
+    if (!window.confirm(`ATENÇÃO GERENTE: Deseja apagar TODOS os registros de atendimentos de ${seller.nome_completo}? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/manager/records/seller/${seller.user_id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao apagar registros');
+
+      alert(data.message);
+      setSelectedSeller(null);
+      fetchDashboardData();
+    } catch (err) {
+      alert('Erro: ' + err.message);
+    }
+  };
+
+  const handleDeleteAllTeamRecords = async () => {
+    const confirmation = window.prompt("ATENÇÃO MÁXIMA: Você está prestes a APAGAR TODOS OS REGISTROS DE TODA A EQUIPE.\n\nDigite 'ZERAR' para confirmar:");
+    if (confirmation !== 'ZERAR') {
+      if (confirmation !== null) alert("Operação cancelada. A palavra 'ZERAR' não foi digitada corretamente.");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/manager/records/all', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao zerar histórico');
+
+      alert(data.message);
+      setSelectedSeller(null);
+      fetchDashboardData();
+    } catch (err) {
+      alert('Erro: ' + err.message);
+    }
+  };
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -130,34 +177,57 @@ export default function SimpleManagerDashboard() {
           </p>
         </div>
 
-        {/* Botões do Período */}
-        <div style={{ display: 'flex', gap: '6px', backgroundColor: '#e2e8f0', padding: '4px', borderRadius: '10px' }}>
-          {[
-            { id: 'hoje', label: 'Hoje' },
-            { id: 'semana', label: 'Esta Semana' },
-            { id: 'mes', label: 'Este Mês' }
-          ].map(p => (
-            <button
-              key={p.id}
-              onClick={() => {
-                setPeriodo(p.id);
-                setSelectedSeller(null);
-              }}
-              style={{
-                padding: '6px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                fontSize: '13px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                backgroundColor: periodo === p.id ? '#0f2d59' : 'transparent',
-                color: periodo === p.id ? '#ffffff' : '#475569',
-                transition: 'all 0.2s'
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
+        {/* Botões do Período e Zerar */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={handleDeleteAllTeamRecords}
+            title="Ação administrativa: apaga todos os registros de toda a equipe"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: '1px solid #fecaca',
+              backgroundColor: '#fef2f2',
+              color: '#dc2626',
+              fontSize: '12px',
+              fontWeight: '700',
+              cursor: 'pointer'
+            }}
+          >
+            <Trash2 size={14} />
+            <span>Zerar Histórico da Equipe</span>
+          </button>
+
+          <div style={{ display: 'flex', gap: '6px', backgroundColor: '#e2e8f0', padding: '4px', borderRadius: '10px' }}>
+            {[
+              { id: 'hoje', label: 'Hoje' },
+              { id: 'semana', label: 'Esta Semana' },
+              { id: 'mes', label: 'Este Mês' }
+            ].map(p => (
+              <button
+                key={p.id}
+                onClick={() => {
+                  setPeriodo(p.id);
+                  setSelectedSeller(null);
+                }}
+                style={{
+                  padding: '6px 16px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  backgroundColor: periodo === p.id ? '#0f2d59' : 'transparent',
+                  color: periodo === p.id ? '#ffffff' : '#475569',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -330,13 +400,38 @@ export default function SimpleManagerDashboard() {
             </button>
 
             {/* Cabeçalho do Colaborador */}
-            <div style={{ marginBottom: '18px' }}>
-              <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>
-                Detalhamento ({periodo === 'hoje' ? 'Hoje' : periodo === 'semana' ? 'Esta Semana' : 'Este Mês'})
-              </span>
-              <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0f2d59', margin: '4px 0 0 0' }}>
-                {selectedSeller.nome_completo}
-              </h3>
+            <div style={{ marginBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingRight: '40px' }}>
+              <div>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>
+                  Detalhamento ({periodo === 'hoje' ? 'Hoje' : periodo === 'semana' ? 'Esta Semana' : 'Este Mês'})
+                </span>
+                <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0f2d59', margin: '4px 0 0 0' }}>
+                  {selectedSeller.nome_completo}
+                </h3>
+              </div>
+
+              {/* Botão de Excluir todos os registros deste vendedor */}
+              <button
+                type="button"
+                onClick={() => handleDeleteSellerAllRecords(selectedSeller)}
+                title="Apagar todo o histórico deste funcionário"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #fecaca',
+                  backgroundColor: '#fef2f2',
+                  color: '#dc2626',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer'
+                }}
+              >
+                <Trash2 size={14} />
+                <span>Apagar Histórico Dele</span>
+              </button>
             </div>
 
             {/* Cards Numéricos (Contatos vs Atenderam) */}

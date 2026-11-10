@@ -398,6 +398,52 @@ app.delete('/api/records/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Excluir TODOS os lançamentos de um funcionário específico (Somente Gerente)
+app.delete('/api/manager/records/seller/:userId', authenticateToken, requireManager, async (req, res) => {
+  const sellerId = Number(req.params.userId);
+
+  try {
+    const userRes = await db.query('SELECT nome_completo FROM users WHERE id = $1', [sellerId]);
+    const user = userRes.rows[0];
+
+    if (!user) {
+      return res.status(404).json({ error: 'Funcionário não encontrado.' });
+    }
+
+    const countRes = await db.query('SELECT COUNT(*)::int as count FROM daily_records WHERE user_id = $1', [sellerId]);
+    const totalDeleted = countRes.rows[0].count;
+
+    await db.query('DELETE FROM daily_records WHERE user_id = $1', [sellerId]);
+    await logAudit(req.user.id, 'EXCLUSAO_TODOS_REGISTROS_VENDEDOR', 'daily_records', sellerId, {
+      vendedor: user.nome_completo,
+      quantidade_excluida: totalDeleted
+    });
+
+    return res.json({ message: `Todos os ${totalDeleted} lançamentos de ${user.nome_completo} foram excluídos com sucesso!` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao excluir lançamentos do funcionário.' });
+  }
+});
+
+// Excluir TODOS os lançamentos de TODA a equipe (Zerar histórico) (Somente Gerente)
+app.delete('/api/manager/records/all', authenticateToken, requireManager, async (req, res) => {
+  try {
+    const countRes = await db.query('SELECT COUNT(*)::int as count FROM daily_records');
+    const totalDeleted = countRes.rows[0].count;
+
+    await db.query('DELETE FROM daily_records');
+    await logAudit(req.user.id, 'LIMPEZA_GERAL_HISTORICO', 'daily_records', null, {
+      quantidade_excluida: totalDeleted
+    });
+
+    return res.json({ message: `Todos os ${totalDeleted} registros da equipe foram apagados com sucesso!` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao apagar histórico geral.' });
+  }
+});
+
 // ---------------- ROTAS DO GERENTE / ADMINISTRADOR ----------------
 
 app.get('/api/manager/dashboard', authenticateToken, requireManager, async (req, res) => {
