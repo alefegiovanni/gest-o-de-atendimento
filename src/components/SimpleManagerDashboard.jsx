@@ -339,6 +339,25 @@ export default function SimpleManagerDashboard() {
             {totals.contatos > 0 ? Math.round((Math.max(0, (totals.contatos || 0) - (totals.atendimentos || 0)) / totals.contatos) * 100) : 0}% sem atendimento
           </small>
         </div>
+
+        {/* Total NF (Negócios Fechados) */}
+        <div style={{
+          backgroundColor: '#ffffff',
+          padding: '20px',
+          borderRadius: '14px',
+          border: '1.5px solid #d4af37',
+          boxShadow: '0 2px 4px rgba(212, 175, 55, 0.12)'
+        }}>
+          <span style={{ fontSize: '12px', fontWeight: '700', color: '#b45309', textTransform: 'uppercase' }}>
+            NF (Negócios Fechados)
+          </span>
+          <p style={{ fontSize: '32px', fontWeight: '800', color: '#b45309', margin: '8px 0 0 0' }}>
+            {totals.vendas || 0}
+          </p>
+          <small style={{ color: '#92400e', fontSize: '12px', fontWeight: '600' }}>
+            {totals.atendimentos > 0 ? Math.round(((totals.vendas || 0) / totals.atendimentos) * 100) : 0}% de conversão de atendimentos
+          </small>
+        </div>
       </div>
 
       {/* Tabela dos Funcionários Clicáveis */}
@@ -363,6 +382,7 @@ export default function SimpleManagerDashboard() {
               <th style={{ padding: '12px 18px', color: '#475569', fontWeight: '700', textAlign: 'center' }}>Contatos</th>
               <th style={{ padding: '12px 18px', color: '#475569', fontWeight: '700', textAlign: 'center' }}>Atenderam</th>
               <th style={{ padding: '12px 18px', color: '#475569', fontWeight: '700', textAlign: 'center' }}>Não Atenderam</th>
+              <th style={{ padding: '12px 18px', color: '#b45309', fontWeight: '800', textAlign: 'center' }}>NF (Fechados)</th>
               <th style={{ padding: '12px 18px', color: '#475569', fontWeight: '700', textAlign: 'center' }}>Aproveitamento</th>
               <th style={{ padding: '12px 18px', textAlign: 'center', width: '40px' }}></th>
             </tr>
@@ -371,6 +391,7 @@ export default function SimpleManagerDashboard() {
             {ranking.map((row) => {
               const aproveitamento = row.contatos > 0 ? Math.round((row.atendimentos / row.contatos) * 100) : 0;
               const naoAtenderam = Math.max(0, (row.contatos || 0) - (row.atendimentos || 0));
+              const nf = row.vendas || 0;
 
               return (
                 <tr
@@ -402,6 +423,16 @@ export default function SimpleManagerDashboard() {
                   </td>
                   <td style={{ padding: '14px 18px', textAlign: 'center', fontSize: '15px', fontWeight: '700', color: '#dc2626' }}>
                     {naoAtenderam}
+                  </td>
+                  <td style={{ padding: '14px 18px', textAlign: 'center', fontSize: '15px', fontWeight: '800', color: '#b45309' }}>
+                    <span style={{
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      backgroundColor: nf > 0 ? '#fef3c7' : 'transparent',
+                      color: nf > 0 ? '#b45309' : '#64748b'
+                    }}>
+                      {nf}
+                    </span>
                   </td>
                   <td style={{ padding: '14px 18px', textAlign: 'center' }}>
                     <span style={{
@@ -509,18 +540,18 @@ export default function SimpleManagerDashboard() {
               </button>
             </div>
 
-            {/* Cards Numéricos (Contatos vs Atenderam vs Não Atenderam) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '20px' }}>
-              <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Contatos</span>
-                <p style={{ fontSize: '22px', fontWeight: '800', color: '#0f2d59', margin: '4px 0 0 0' }}>
+            {/* Cards Numéricos (Contatos vs Atenderam vs Não Atenderam vs NF) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '20px' }}>
+              <div style={{ backgroundColor: '#f8fafc', padding: '10px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                <span style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Contatos</span>
+                <p style={{ fontSize: '20px', fontWeight: '800', color: '#0f2d59', margin: '4px 0 0 0' }}>
                   {contatos}
                 </p>
               </div>
 
-              <div style={{ backgroundColor: '#ecfdf5', padding: '12px', borderRadius: '12px', border: '1px solid #a7f3d0', textAlign: 'center' }}>
-                <span style={{ fontSize: '11px', fontWeight: '700', color: '#047857', textTransform: 'uppercase' }}>Atenderam</span>
-                <p style={{ fontSize: '22px', fontWeight: '800', color: '#059669', margin: '4px 0 0 0' }}>
+              <div style={{ backgroundColor: '#ecfdf5', padding: '10px', borderRadius: '12px', border: '1px solid #a7f3d0', textAlign: 'center' }}>
+                <span style={{ fontSize: '10px', fontWeight: '700', color: '#047857', textTransform: 'uppercase' }}>Atenderam</span>
+                <p style={{ fontSize: '20px', fontWeight: '800', color: '#059669', margin: '4px 0 0 0' }}>
                   {atenderam}
                 </p>
                 <small style={{ fontSize: '10px', color: '#047857', fontWeight: '700' }}>
@@ -528,13 +559,23 @@ export default function SimpleManagerDashboard() {
                 </small>
               </div>
 
-              <div style={{ backgroundColor: '#fef2f2', padding: '12px', borderRadius: '12px', border: '1px solid #fecaca', textAlign: 'center' }}>
-                <span style={{ fontSize: '11px', fontWeight: '700', color: '#dc2626', textTransform: 'uppercase' }}>Não Atenderam</span>
-                <p style={{ fontSize: '22px', fontWeight: '800', color: '#dc2626', margin: '4px 0 0 0' }}>
+              <div style={{ backgroundColor: '#fef2f2', padding: '10px', borderRadius: '12px', border: '1px solid #fecaca', textAlign: 'center' }}>
+                <span style={{ fontSize: '10px', fontWeight: '700', color: '#dc2626', textTransform: 'uppercase' }}>Não Atenderam</span>
+                <p style={{ fontSize: '20px', fontWeight: '800', color: '#dc2626', margin: '4px 0 0 0' }}>
                   {Math.max(0, contatos - atenderam)}
                 </p>
                 <small style={{ fontSize: '10px', color: '#dc2626', fontWeight: '700' }}>
                   {contatos > 0 ? Math.round((Math.max(0, contatos - atenderam) / contatos) * 100) : 0}%
+                </small>
+              </div>
+
+              <div style={{ backgroundColor: '#fffbeb', padding: '10px', borderRadius: '12px', border: '1px solid #fde68a', textAlign: 'center' }}>
+                <span style={{ fontSize: '10px', fontWeight: '700', color: '#b45309', textTransform: 'uppercase' }}>NF</span>
+                <p style={{ fontSize: '20px', fontWeight: '800', color: '#b45309', margin: '4px 0 0 0' }}>
+                  {selectedSeller?.vendas || 0}
+                </p>
+                <small style={{ fontSize: '10px', color: '#b45309', fontWeight: '700' }}>
+                  Fechados
                 </small>
               </div>
             </div>
@@ -594,6 +635,9 @@ export default function SimpleManagerDashboard() {
                       </span>
                       <span style={{ color: '#64748b' }}>
                         Não: <strong style={{ color: '#dc2626' }}>{Math.max(0, (rec.contatos || 0) - (rec.atendimentos || 0))}</strong>
+                      </span>
+                      <span style={{ color: '#64748b' }}>
+                        NF: <strong style={{ color: '#b45309' }}>{rec.vendas || 0}</strong>
                       </span>
                       <button
                         type="button"

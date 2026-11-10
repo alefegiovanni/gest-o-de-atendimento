@@ -10,6 +10,7 @@ export default function SimpleSellerDashboard({ user }) {
   const todayStr = new Date().toISOString().split('T')[0];
   const [contatos, setContatos] = useState('');
   const [atendimentos, setAtendimentos] = useState('');
+  const [vendas, setVendas] = useState('');
   const [observacao, setObservacao] = useState('');
   const [showAllHistory, setShowAllHistory] = useState(false);
 
@@ -25,10 +26,12 @@ export default function SimpleSellerDashboard({ user }) {
         if (json.registro_hoje) {
           setContatos(json.registro_hoje.contatos);
           setAtendimentos(json.registro_hoje.atendimentos);
+          setVendas(json.registro_hoje.vendas || '');
           setObservacao(json.registro_hoje.observacao || '');
         } else {
           setContatos('');
           setAtendimentos('');
+          setVendas('');
           setObservacao('');
         }
       }
@@ -62,7 +65,7 @@ export default function SimpleSellerDashboard({ user }) {
           atendimentos: Number(atendimentos) || 0,
           respostas: Number(atendimentos) || 0,
           propostas: 0,
-          vendas: 0,
+          vendas: Number(vendas) || 0,
           valor_vendido: 0,
           observacao
         })
@@ -185,7 +188,7 @@ export default function SimpleSellerDashboard({ user }) {
         )}
 
         <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '18px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '14px', marginBottom: '18px' }}>
             {/* Campo Contatos */}
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
@@ -212,14 +215,14 @@ export default function SimpleSellerDashboard({ user }) {
                 onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
               />
               <small style={{ color: '#64748b', fontSize: '11px', marginTop: '4px', display: 'block' }}>
-                Ligações, mensagens ou tentativas
+                Ligações ou mensagens
               </small>
             </div>
 
             {/* Campo Atendimentos */}
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
-                2. Atendimentos Concluídos
+                2. Atendimentos
               </label>
               <input
                 type="number"
@@ -242,7 +245,37 @@ export default function SimpleSellerDashboard({ user }) {
                 onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
               />
               <small style={{ color: '#64748b', fontSize: '11px', marginTop: '4px', display: 'block' }}>
-                Clientes que responderam e conversaram
+                Responderam/conversaram
+              </small>
+            </div>
+
+            {/* Campo NF (Negócios Fechados) */}
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#0f2d59', marginBottom: '6px' }}>
+                3. NF (Fechados)
+              </label>
+              <input
+                type="number"
+                min="0"
+                placeholder="Ex: 2"
+                value={vendas}
+                onChange={(e) => setVendas(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  border: '2px solid #bbf7d0',
+                  backgroundColor: '#f0fdf4',
+                  fontSize: '18px',
+                  fontWeight: '800',
+                  color: '#15803d',
+                  outline: 'none'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#16a34a'}
+                onBlur={(e) => e.target.style.borderColor = '#bbf7d0'}
+              />
+              <small style={{ color: '#15803d', fontSize: '11px', marginTop: '4px', display: 'block', fontWeight: '600' }}>
+                Negócios fechados
               </small>
             </div>
           </div>
@@ -337,6 +370,9 @@ export default function SimpleSellerDashboard({ user }) {
                 </span>
                 <span style={{ color: '#64748b' }}>
                   Atendimentos: <strong style={{ color: '#059669' }}>{h.atendimentos}</strong>
+                </span>
+                <span style={{ color: '#64748b' }}>
+                  NF: <strong style={{ color: '#15803d' }}>{h.vendas || 0}</strong>
                 </span>
                 <button
                   type="button"
