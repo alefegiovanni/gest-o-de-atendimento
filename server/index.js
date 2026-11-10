@@ -113,7 +113,51 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// 2. Obter perfil autenticado atual
+// 2. Trocar código direto pela tela de login (sem precisar estar logado)
+app.post('/api/auth/reset-code', async (req, res) => {
+  const { primeiro_nome, codigo_atual, novo_codigo } = req.body;
+
+  if (!primeiro_nome || !codigo_atual || !novo_codigo) {
+    return res.status(400).json({ error: 'Primeiro nome, código atual e novo código são obrigatórios.' });
+  }
+
+  if (!/^\d{6}$/.test(String(novo_codigo))) {
+    return res.status(400).json({ error: 'O novo código precisa ter exatamente 6 números.' });
+  }
+
+  try {
+    const result = await db.query('SELECT * FROM users WHERE LOWER(TRIM(primeiro_nome)) = LOWER(TRIM($1)) AND ativo = 1', [primeiro_nome]);
+    const users = result.rows;
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado ou inativo.' });
+    }
+
+    if (users.length > 1) {
+      return res.status(400).json({ error: 'Existe mais de um colaborador com este nome. Por favor, acesse o sistema antes de trocar a senha.' });
+    }
+
+    const user = users[0];
+    const valid = bcrypt.compareSync(String(codigo_atual).trim(), user.codigo_acesso_protegido);
+
+    if (!valid) {
+      return res.status(401).json({ error: 'Código atual informado está incorreto.' });
+    }
+
+    const salt = bcrypt.genSaltSync(10);
+    const hash = bcrypt.hashSync(String(novo_codigo).trim(), salt);
+
+    await db.query('UPDATE users SET codigo_acesso_protegido = $1, atualizado_em = CURRENT_TIMESTAMP WHERE id = $2', [hash, user.id]);
+    await logAudit(user.id, 'ALTERACAO_SENHA_LOGIN', 'users', user.id, 'Usuário alterou seu código pela tela de login.');
+
+    res.json({ message: 'Código de acesso alterado com sucesso! Já pode fazer login.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao redefinir código.' });
+  }
+});
+
+// 3. Obter perfil autenticado atual
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
     const result = await db.query('SELECT id, nome_completo, primeiro_nome, perfil, telefone, ativo, criado_em FROM users WHERE id = $1', [req.user.id]);

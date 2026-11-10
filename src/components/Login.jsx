@@ -1,16 +1,25 @@
 import React, { useState } from 'react';
-import { ShieldCheck, UserCheck, AlertCircle, Sparkles, Lock, ArrowRight } from 'lucide-react';
+import { ShieldCheck, UserCheck, AlertCircle, Lock, ArrowRight, KeyRound, CheckCircle } from 'lucide-react';
 
 export default function Login({ onLoginSuccess }) {
   const [primeiroNome, setPrimeiroNome] = useState('');
   const [codigoAcesso, setCodigoAcesso] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [ambiguousOptions, setAmbiguousOptions] = useState(null);
+
+  // Modo Alterar Código (Primeiro Acesso / Esqueci Código)
+  const [isChangingCode, setIsChangingCode] = useState(false);
+  const [resetNome, setResetNome] = useState('');
+  const [codigoAtual, setCodigoAtual] = useState('');
+  const [novoCodigo, setNovoCodigo] = useState('');
+  const [confirmaNovo, setConfirmaNovo] = useState('');
 
   const handleSubmit = async (e, chosenUser = null) => {
     if (e) e.preventDefault();
     setError('');
+    setSuccessMsg('');
 
     if (!codigoAcesso || codigoAcesso.length !== 6) {
       setError('Por favor, informe o seu código de acesso com 6 números.');
@@ -56,11 +65,58 @@ export default function Login({ onLoginSuccess }) {
     }
   };
 
-  const handleFillDemo = (nome, codigo) => {
-    setPrimeiroNome(nome);
-    setCodigoAcesso(codigo);
+  const handleResetCode = async (e) => {
+    e.preventDefault();
     setError('');
-    setAmbiguousOptions(null);
+    setSuccessMsg('');
+
+    if (!resetNome.trim()) {
+      setError('Informe seu primeiro nome.');
+      return;
+    }
+
+    if (codigoAtual.length !== 6) {
+      setError('O código atual precisa ter 6 números.');
+      return;
+    }
+
+    if (novoCodigo.length !== 6) {
+      setError('O novo código precisa ter 6 números.');
+      return;
+    }
+
+    if (novoCodigo !== confirmaNovo) {
+      setError('A confirmação não confere com o novo código.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/reset-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          primeiro_nome: resetNome.trim(),
+          codigo_atual: codigoAtual,
+          novo_codigo: novoCodigo
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao alterar código');
+
+      setSuccessMsg(data.message || 'Código alterado com sucesso! Já pode entrar.');
+      setPrimeiroNome(resetNome.trim());
+      setCodigoAcesso(novoCodigo);
+      setIsChangingCode(false);
+      setCodigoAtual('');
+      setNovoCodigo('');
+      setConfirmaNovo('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -105,7 +161,7 @@ export default function Login({ onLoginSuccess }) {
             Gestão de Atendimento
           </h1>
           <p style={{ fontSize: '14px', color: '#94a3b8', marginTop: '6px' }}>
-            Acompanhe seus resultados todos os dias.
+            {isChangingCode ? 'Primeiro Acesso / Alterar Código' : 'Acompanhe seus resultados todos os dias.'}
           </p>
         </div>
 
@@ -126,6 +182,24 @@ export default function Login({ onLoginSuccess }) {
             }}>
               <AlertCircle size={18} style={{ flexShrink: 0 }} />
               <span>{error}</span>
+            </div>
+          )}
+
+          {successMsg && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              backgroundColor: '#ecfdf5',
+              color: '#059669',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              marginBottom: '20px',
+              fontSize: '13px',
+              border: '1px solid #a7f3d0'
+            }}>
+              <CheckCircle size={18} style={{ flexShrink: 0 }} />
+              <span>{successMsg}</span>
             </div>
           )}
 
@@ -160,7 +234,143 @@ export default function Login({ onLoginSuccess }) {
                 ))}
               </div>
             </div>
+          ) : isChangingCode ? (
+            /* FORMULÁRIO DE TROCAR CÓDIGO */
+            <form onSubmit={handleResetCode}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+                  Seu primeiro nome
+                </label>
+                <input
+                  type="text"
+                  value={resetNome}
+                  onChange={(e) => setResetNome(e.target.value)}
+                  placeholder="Ex: Isabela"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    fontSize: '15px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #e2e8f0',
+                    outline: 'none',
+                    backgroundColor: '#f8fafc'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+                  Código Atual / Temporário (6 números)
+                </label>
+                <input
+                  type="password"
+                  maxLength={6}
+                  value={codigoAtual}
+                  onChange={(e) => setCodigoAtual(e.target.value.replace(/\D/g, ''))}
+                  placeholder="••••••"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    fontSize: '16px',
+                    letterSpacing: '3px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #e2e8f0',
+                    outline: 'none',
+                    backgroundColor: '#f8fafc'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+                  Novo Código de 6 números
+                </label>
+                <input
+                  type="password"
+                  maxLength={6}
+                  value={novoCodigo}
+                  onChange={(e) => setNovoCodigo(e.target.value.replace(/\D/g, ''))}
+                  placeholder="••••••"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    fontSize: '16px',
+                    letterSpacing: '3px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #e2e8f0',
+                    outline: 'none',
+                    backgroundColor: '#f8fafc'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '22px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+                  Confirmar Novo Código
+                </label>
+                <input
+                  type="password"
+                  maxLength={6}
+                  value={confirmaNovo}
+                  onChange={(e) => setConfirmaNovo(e.target.value.replace(/\D/g, ''))}
+                  placeholder="••••••"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    fontSize: '16px',
+                    letterSpacing: '3px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #e2e8f0',
+                    outline: 'none',
+                    backgroundColor: '#f8fafc'
+                  }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: '#059669',
+                  color: '#ffffff',
+                  fontSize: '15px',
+                  fontWeight: '700',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  marginBottom: '14px'
+                }}
+              >
+                {loading ? 'Salvando...' : 'Salvar Novo Código'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsChangingCode(false);
+                  setError('');
+                }}
+                style={{
+                  width: '100%',
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748b',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                ← Voltar para o Login
+              </button>
+            </form>
           ) : (
+            /* FORMULÁRIO DE LOGIN NORMAL */
             <form onSubmit={(e) => handleSubmit(e)}>
               <div style={{ marginBottom: '18px' }}>
                 <label style={{
@@ -177,7 +387,7 @@ export default function Login({ onLoginSuccess }) {
                     type="text"
                     value={primeiroNome}
                     onChange={(e) => setPrimeiroNome(e.target.value)}
-                    placeholder="Ex: Carlos ou Ana"
+                    placeholder="Ex: Isabela"
                     autoFocus
                     required
                     style={{
@@ -187,8 +397,7 @@ export default function Login({ onLoginSuccess }) {
                       borderRadius: '10px',
                       border: '1.5px solid #e2e8f0',
                       outline: 'none',
-                      backgroundColor: '#f8fafc',
-                      transition: 'border-color 0.2s',
+                      backgroundColor: '#f8fafc'
                     }}
                     onFocus={(e) => e.target.style.borderColor = '#0070f3'}
                     onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
@@ -196,16 +405,36 @@ export default function Login({ onLoginSuccess }) {
                 </div>
               </div>
 
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  color: '#334155',
-                  marginBottom: '6px'
-                }}>
-                  Código de 6 números
-                </label>
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    color: '#334155'
+                  }}>
+                    Código de 6 números
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsChangingCode(true);
+                      setResetNome(primeiroNome);
+                      setError('');
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#0070f3',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                  >
+                    Trocar código?
+                  </button>
+                </div>
+
                 <div style={{ position: 'relative' }}>
                   <input
                     type="password"
@@ -224,17 +453,13 @@ export default function Login({ onLoginSuccess }) {
                       borderRadius: '10px',
                       border: '1.5px solid #e2e8f0',
                       outline: 'none',
-                      backgroundColor: '#f8fafc',
-                      textAlign: 'left'
+                      backgroundColor: '#f8fafc'
                     }}
                     onFocus={(e) => e.target.style.borderColor = '#0070f3'}
                     onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
                   />
                   <Lock size={18} color="#94a3b8" style={{ position: 'absolute', right: '14px', top: '15px' }} />
                 </div>
-                <small style={{ color: '#64748b', fontSize: '11px', marginTop: '4px', display: 'block' }}>
-                  Digite os 6 dígitos fornecidos pela gerência.
-                </small>
               </div>
 
               <button
@@ -262,6 +487,31 @@ export default function Login({ onLoginSuccess }) {
               >
                 {loading ? 'Entrando...' : 'Entrar no Sistema'}
               </button>
+
+              <div style={{ textAlign: 'center', marginTop: '18px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsChangingCode(true);
+                    setResetNome(primeiroNome);
+                    setError('');
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <KeyRound size={14} />
+                  <span>Primeiro acesso? Clique para definir seu código</span>
+                </button>
+              </div>
             </form>
           )}
         </div>
@@ -269,4 +519,3 @@ export default function Login({ onLoginSuccess }) {
     </div>
   );
 }
-
