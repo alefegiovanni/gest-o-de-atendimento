@@ -504,7 +504,8 @@ app.get('/api/manager/dashboard', authenticateToken, requireManager, async (req,
         COALESCE(SUM(r.atendimentos), 0)::int as atendimentos,
         COALESCE(SUM(r.propostas), 0)::int as propostas,
         COALESCE(SUM(r.vendas), 0)::int as vendas,
-        COALESCE(SUM(r.valor_vendido), 0)::float as valor_vendido
+        COALESCE(SUM(r.valor_vendido), 0)::float as valor_vendido,
+        MAX(r.observacao) as ultima_observacao
       FROM users u
       LEFT JOIN daily_records r ON r.user_id = u.id AND r.data >= $1 AND r.data <= $2
       WHERE u.perfil = 'vendedor' AND u.ativo = 1

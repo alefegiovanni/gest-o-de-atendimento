@@ -384,6 +384,7 @@ export default function SimpleManagerDashboard() {
               <th style={{ padding: '12px 18px', color: '#475569', fontWeight: '700', textAlign: 'center' }}>Não Atenderam</th>
               <th style={{ padding: '12px 18px', color: '#b45309', fontWeight: '800', textAlign: 'center' }}>NF (Fechados)</th>
               <th style={{ padding: '12px 18px', color: '#475569', fontWeight: '700', textAlign: 'center' }}>Aproveitamento</th>
+              <th style={{ padding: '12px 18px', color: '#475569', fontWeight: '700' }}>Observação do Dia / NF</th>
               <th style={{ padding: '12px 18px', textAlign: 'center', width: '40px' }}></th>
             </tr>
           </thead>
@@ -446,6 +447,27 @@ export default function SimpleManagerDashboard() {
                     }}>
                       {aproveitamento}%
                     </span>
+                  </td>
+                  <td style={{ padding: '14px 18px', fontSize: '12px' }}>
+                    {row.ultima_observacao ? (
+                      <span style={{
+                        display: 'inline-block',
+                        maxWidth: '260px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        color: nf > 0 ? '#92400e' : '#475569',
+                        fontWeight: nf > 0 ? '700' : '400',
+                        backgroundColor: nf > 0 ? '#fffbeb' : '#f1f5f9',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        borderLeft: nf > 0 ? '3px solid #f59e0b' : 'none'
+                      }}>
+                        {nf > 0 ? '⭐ ' : ''}{row.ultima_observacao}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#cbd5e1' }}>-</span>
+                    )}
                   </td>
                   <td style={{ padding: '14px 18px', textAlign: 'center', color: '#94a3b8' }}>
                     <ChevronRight size={18} />
