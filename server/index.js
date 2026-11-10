@@ -104,7 +104,8 @@ app.post('/api/auth/login', async (req, res) => {
         nome_completo: user.nome_completo,
         primeiro_nome: user.primeiro_nome,
         perfil: user.perfil,
-        telefone: user.telefone
+        telefone: user.telefone,
+        precisa_trocar_codigo: user.precisa_trocar_codigo === 1
       }
     });
   } catch (err) {
@@ -193,7 +194,7 @@ app.post('/api/auth/change-code', authenticateToken, async (req, res) => {
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync(String(novo_codigo).trim(), salt);
 
-    await db.query('UPDATE users SET codigo_acesso_protegido = $1, atualizado_em = CURRENT_TIMESTAMP WHERE id = $2', [hash, req.user.id]);
+    await db.query('UPDATE users SET codigo_acesso_protegido = $1, precisa_trocar_codigo = 0, atualizado_em = CURRENT_TIMESTAMP WHERE id = $2', [hash, req.user.id]);
     await logAudit(req.user.id, 'ALTERACAO_SENHA', 'users', req.user.id, 'O próprio usuário alterou seu código de 6 dígitos.');
 
     res.json({ message: 'Código de acesso alterado com sucesso!' });
@@ -519,8 +520,8 @@ app.post('/api/manager/sellers', authenticateToken, requireManager, async (req, 
 
   try {
     const result = await db.query(`
-      INSERT INTO users (nome_completo, primeiro_nome, codigo_acesso_protegido, perfil, telefone, ativo)
-      VALUES ($1, $2, $3, 'vendedor', $4, $5)
+      INSERT INTO users (nome_completo, primeiro_nome, codigo_acesso_protegido, perfil, telefone, ativo, precisa_trocar_codigo)
+      VALUES ($1, $2, $3, 'vendedor', $4, $5, 1)
       RETURNING id
     `, [nome_completo.trim(), primeiro_nome.trim(), hash, telefone ? telefone.trim() : null, ativo ? 1 : 0]);
 
@@ -533,9 +534,35 @@ app.post('/api/manager/sellers', authenticateToken, requireManager, async (req, 
   }
 });
 
+// Redefinir senha padrão para TODOS os vendedores de uma vez
+app.post('/api/manager/sellers/reset-all-passwords', authenticateToken, requireManager, async (req, res) => {
+  const { codigo_padrao } = req.body;
+
+  if (!codigo_padrao || !/^\d{6}$/.test(String(codigo_padrao))) {
+    return res.status(400).json({ error: 'O código padrão deve conter exatamente 6 números.' });
+  }
+
+  const salt = bcrypt.genSaltSync(10);
+  const hash = bcrypt.hashSync(String(codigo_padrao).trim(), salt);
+
+  try {
+    await db.query(`
+      UPDATE users 
+      SET codigo_acesso_protegido = $1, precisa_trocar_codigo = 1, atualizado_em = CURRENT_TIMESTAMP
+      WHERE perfil = 'vendedor'
+    `, [hash]);
+
+    await logAudit(req.user.id, 'REDEFINIR_CODIGO_PADRAO_TODOS', 'users', null, { codigo_padrao });
+
+    res.json({ message: 'Senha padrão aplicada a todos os vendedores com sucesso! No próximo login, eles serão solicitados a cadastrar uma nova senha.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao redefinir código de todos: ' + err.message });
+  }
+});
+
 app.put('/api/manager/sellers/:id', authenticateToken, requireManager, async (req, res) => {
   const sellerId = Number(req.params.id);
-  const { nome_completo, primeiro_nome, telefone, ativo, novo_codigo } = req.body;
+  const { nome_completo, primeiro_nome, telefone, ativo, novo_codigo, forcar_troca } = req.body;
 
   try {
     const existingRes = await db.query('SELECT * FROM users WHERE id = $1', [sellerId]);
@@ -563,7 +590,7 @@ app.put('/api/manager/sellers/:id', authenticateToken, requireManager, async (re
       }
       const salt = bcrypt.genSaltSync(10);
       const hash = bcrypt.hashSync(String(novo_codigo).trim(), salt);
-      updateQuery += `, codigo_acesso_protegido = $5 WHERE id = $6`;
+      updateQuery += `, codigo_acesso_protegido = $5, precisa_trocar_codigo = 1 WHERE id = $6`;
       params.push(hash, sellerId);
     } else {
       updateQuery += ` WHERE id = $5`;

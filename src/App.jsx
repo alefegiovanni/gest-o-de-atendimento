@@ -19,6 +19,9 @@ export default function App() {
   const [changeCodeOpen, setChangeCodeOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
 
+  // Se o usuário precisa trocar o código (senha padrão), abre o modal forçado
+  const forcedChangeCode = !!user?.precisa_trocar_codigo;
+
   useEffect(() => {
     // Check local storage token
     const token = localStorage.getItem('token');
@@ -272,8 +275,17 @@ export default function App() {
         Gestão de Atendimento • Sistema de Produtividade em Consórcios • {new Date().getFullYear()}
       </footer>
 
-      {/* Modal Alterar Código */}
-      <ChangeCodeModal isOpen={changeCodeOpen} onClose={() => setChangeCodeOpen(false)} />
+      {/* Modal Alterar Código (Normal ou Forçado no Primeiro Acesso) */}
+      <ChangeCodeModal 
+        isOpen={changeCodeOpen || forcedChangeCode} 
+        onClose={() => setChangeCodeOpen(false)} 
+        forced={forcedChangeCode}
+        onCodeChanged={() => {
+          const updated = { ...user, precisa_trocar_codigo: false };
+          setUser(updated);
+          localStorage.setItem('user', JSON.stringify(updated));
+        }}
+      />
 
       {/* Modal Editar Nome do Gerente */}
       <EditProfileModal 

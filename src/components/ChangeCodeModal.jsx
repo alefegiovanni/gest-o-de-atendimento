@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Lock, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { Lock, CheckCircle, AlertCircle, X, ShieldAlert } from 'lucide-react';
 
-export default function ChangeCodeModal({ isOpen, onClose }) {
+export default function ChangeCodeModal({ isOpen, onClose, forced = false, onCodeChanged }) {
   const [codigoAtual, setCodigoAtual] = useState('');
   const [novoCodigo, setNovoCodigo] = useState('');
   const [confirmaCodigo, setConfirmaCodigo] = useState('');
@@ -18,6 +18,11 @@ export default function ChangeCodeModal({ isOpen, onClose }) {
 
     if (novoCodigo.length !== 6 || !/^\d{6}$/.test(novoCodigo)) {
       setError('O novo código deve possuir exatamente 6 números.');
+      return;
+    }
+
+    if (novoCodigo === codigoAtual) {
+      setError('O novo código deve ser diferente do código atual/temporário.');
       return;
     }
 
@@ -44,10 +49,13 @@ export default function ChangeCodeModal({ isOpen, onClose }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao alterar código');
 
-      setSuccess('Código de acesso alterado com sucesso!');
+      setSuccess('Código de acesso atualizado com sucesso!');
       setCodigoAtual('');
       setNovoCodigo('');
       setConfirmaCodigo('');
+      
+      if (onCodeChanged) onCodeChanged();
+
       setTimeout(() => {
         onClose();
         setSuccess('');
@@ -66,50 +74,65 @@ export default function ChangeCodeModal({ isOpen, onClose }) {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(15, 23, 42, 0.6)',
+      backgroundColor: forced ? 'rgba(15, 23, 42, 0.85)' : 'rgba(15, 23, 42, 0.6)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 1000,
+      zIndex: 2000,
       padding: '16px'
     }}>
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
         width: '100%',
-        maxWidth: '400px',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+        maxWidth: '420px',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
         padding: '24px',
         position: 'relative'
       }}>
-        <button
-          onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: '16px',
-            right: '16px',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: '#64748b'
-          }}
-        >
-          <X size={20} />
-        </button>
+        {!forced && (
+          <button
+            onClick={onClose}
+            style={{
+              position: 'absolute',
+              top: '16px',
+              right: '16px',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#64748b'
+            }}
+          >
+            <X size={20} />
+          </button>
+        )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
           <div style={{
-            backgroundColor: '#e0f2fe',
-            color: '#0284c7',
+            backgroundColor: forced ? '#fff7ed' : '#e0f2fe',
+            color: forced ? '#ea580c' : '#0284c7',
             padding: '8px',
             borderRadius: '10px'
           }}>
-            <Lock size={20} />
+            {forced ? <ShieldAlert size={22} /> : <Lock size={20} />}
           </div>
-          <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f2d59', margin: 0 }}>
-            Alterar Código de Acesso
-          </h3>
+          <div>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0f2d59', margin: 0 }}>
+              {forced ? 'Atualização de Senha Obrigatória' : 'Alterar Código de Acesso'}
+            </h3>
+            {forced && (
+              <span style={{ fontSize: '12px', color: '#c2410c', fontWeight: '700' }}>
+                Primeiro acesso ou senha temporária redefinida
+              </span>
+            )}
+          </div>
         </div>
+
+        {forced && (
+          <p style={{ fontSize: '13px', color: '#475569', marginBottom: '16px', lineHeight: '1.4' }}>
+            Para a segurança dos seus lançamentos, por favor cadastre seu código pessoal de 6 números antes de continuar.
+          </p>
+        )}
 
         {error && (
           <div style={{
@@ -148,7 +171,7 @@ export default function ChangeCodeModal({ isOpen, onClose }) {
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '14px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>
-              Código Atual (6 números)
+              {forced ? 'Código Padrão / Temporário Atual (6 números)' : 'Código Atual (6 números)'}
             </label>
             <input
               type="password"
@@ -156,20 +179,21 @@ export default function ChangeCodeModal({ isOpen, onClose }) {
               value={codigoAtual}
               onChange={(e) => setCodigoAtual(e.target.value.replace(/\D/g, ''))}
               required
+              placeholder="••••••"
               style={{
                 width: '100%',
                 padding: '10px 12px',
                 borderRadius: '8px',
                 border: '1px solid #cbd5e1',
                 fontSize: '16px',
-                letterSpacing: '2px'
+                letterSpacing: '3px'
               }}
             />
           </div>
 
           <div style={{ marginBottom: '14px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>
-              Novo Código (6 números)
+              Seu Novo Código Pessoal (6 números)
             </label>
             <input
               type="password"
@@ -177,20 +201,21 @@ export default function ChangeCodeModal({ isOpen, onClose }) {
               value={novoCodigo}
               onChange={(e) => setNovoCodigo(e.target.value.replace(/\D/g, ''))}
               required
+              placeholder="••••••"
               style={{
                 width: '100%',
                 padding: '10px 12px',
                 borderRadius: '8px',
                 border: '1px solid #cbd5e1',
                 fontSize: '16px',
-                letterSpacing: '2px'
+                letterSpacing: '3px'
               }}
             />
           </div>
 
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>
-              Confirmar Novo Código
+              Confirmar Seu Novo Código
             </label>
             <input
               type="password"
@@ -198,47 +223,51 @@ export default function ChangeCodeModal({ isOpen, onClose }) {
               value={confirmaCodigo}
               onChange={(e) => setConfirmaCodigo(e.target.value.replace(/\D/g, ''))}
               required
+              placeholder="••••••"
               style={{
                 width: '100%',
                 padding: '10px 12px',
                 borderRadius: '8px',
                 border: '1px solid #cbd5e1',
                 fontSize: '16px',
-                letterSpacing: '2px'
+                letterSpacing: '3px'
               }}
             />
           </div>
 
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                padding: '10px 16px',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-                backgroundColor: '#ffffff',
-                color: '#475569',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              Cancelar
-            </button>
+            {!forced && (
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: '#ffffff',
+                  color: '#475569',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancelar
+              </button>
+            )}
             <button
               type="submit"
               disabled={loading}
               style={{
-                padding: '10px 16px',
+                width: forced ? '100%' : 'auto',
+                padding: '10px 20px',
                 borderRadius: '8px',
                 border: 'none',
                 backgroundColor: '#0f2d59',
                 color: '#ffffff',
-                fontWeight: '600',
+                fontWeight: '700',
                 cursor: loading ? 'not-allowed' : 'pointer'
               }}
             >
-              {loading ? 'Salvando...' : 'Atualizar Código'}
+              {loading ? 'Salvando...' : 'Salvar Meu Novo Código'}
             </button>
           </div>
         </form>
@@ -246,4 +275,3 @@ export default function ChangeCodeModal({ isOpen, onClose }) {
     </div>
   );
 }
-

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Edit2, Key, CheckCircle, XCircle, Search, Save, X, Eye } from 'lucide-react';
+import { UserPlus, Edit2, Key, CheckCircle, XCircle, Search, Save, X, Eye, ShieldAlert } from 'lucide-react';
 import { formatDateBR } from '../utils/formatters';
 
 export default function TeamManagement() {
@@ -7,6 +7,8 @@ export default function TeamManagement() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [resetCodeModal, setResetCodeModal] = useState(false);
+  const [resetAllModal, setResetAllModal] = useState(false);
+  const [codigoPadraoTodos, setCodigoPadraoTodos] = useState('123456');
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
 
@@ -171,6 +173,31 @@ export default function TeamManagement() {
     }
   };
 
+  const handleResetAllSellers = async (e) => {
+    e.preventDefault();
+    if (!codigoPadraoTodos || codigoPadraoTodos.length !== 6) {
+      alert('O código padrão precisa ter exatamente 6 números.');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/manager/sellers/reset-all-passwords', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ codigo_padrao: codigoPadraoTodos })
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Erro ao aplicar senha padrão');
+
+      setFeedback({ type: 'success', message: d.message });
+      setResetAllModal(false);
+      fetchSellers();
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.message });
+    }
+  };
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 16px' }}>
       
@@ -192,26 +219,48 @@ export default function TeamManagement() {
           </p>
         </div>
 
-        <button
-          onClick={openCreateModal}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            backgroundColor: '#0f2d59',
-            color: '#ffffff',
-            padding: '10px 20px',
-            borderRadius: '10px',
-            border: 'none',
-            fontSize: '14px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            boxShadow: '0 4px 6px -1px rgba(15, 45, 89, 0.2)'
-          }}
-        >
-          <UserPlus size={18} />
-          <span>Novo Vendedor</span>
-        </button>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setResetAllModal(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: '#fff7ed',
+              color: '#c2410c',
+              border: '1.5px solid #fed7aa',
+              padding: '10px 18px',
+              borderRadius: '10px',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: 'pointer'
+            }}
+          >
+            <Key size={16} />
+            <span>Definir Senha Padrão para Todos</span>
+          </button>
+
+          <button
+            onClick={openCreateModal}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: '#0f2d59',
+              color: '#ffffff',
+              padding: '10px 20px',
+              borderRadius: '10px',
+              border: 'none',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              boxShadow: '0 4px 6px -1px rgba(15, 45, 89, 0.2)'
+            }}
+          >
+            <UserPlus size={18} />
+            <span>Novo Vendedor</span>
+          </button>
+        </div>
       </div>
 
       {feedback.message && (
@@ -544,6 +593,72 @@ export default function TeamManagement() {
                   style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', backgroundColor: '#0f2d59', color: '#fff', fontWeight: '700', cursor: 'pointer' }}
                 >
                   Confirmar Novo Código
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Redefinir Código Geral (Todos) */}
+      {resetAllModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '440px',
+            padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
+          }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0f2d59', margin: '0 0 10px 0' }}>
+              Definir Senha Padrão para Todos os Vendedores
+            </h3>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px', lineHeight: '1.4' }}>
+              Ao definir essa senha, todos os vendedores passarão a ter esse código inicial temporário. <strong>Assim que cada um fizer login com o seu primeiro nome, o sistema abrirá automaticamente a tela para ele criar a sua senha pessoal definitiva.</strong>
+            </p>
+
+            <form onSubmit={handleResetAllSellers}>
+              <div style={{ marginBottom: '18px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
+                  Código Padrão Inicial (6 números)
+                </label>
+                <input
+                  type="password"
+                  maxLength={6}
+                  required
+                  value={codigoPadraoTodos}
+                  onChange={(e) => setCodigoPadraoTodos(e.target.value.replace(/\D/g, ''))}
+                  placeholder="123456"
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '18px', letterSpacing: '4px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setResetAllModal(false)}
+                  style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer' }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', backgroundColor: '#c2410c', color: '#fff', fontWeight: '700', cursor: 'pointer' }}
+                >
+                  Aplicar a Todos
                 </button>
               </div>
             </form>
