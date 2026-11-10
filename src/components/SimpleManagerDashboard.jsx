@@ -16,6 +16,7 @@ export default function SimpleManagerDashboard() {
   const [periodo, setPeriodo] = useState('hoje'); // 'hoje', 'semana', 'mes'
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [sellerRecords, setSellerRecords] = useState([]);
+  const [sellerClientNotes, setSellerClientNotes] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [feedback, setFeedback] = useState('');
 
@@ -144,12 +145,22 @@ export default function SimpleManagerDashboard() {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/manager/records?vendedor_id=${seller.user_id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const json = await res.json();
+      const [recRes, noteRes] = await Promise.all([
+        fetch(`/api/manager/records?vendedor_id=${seller.user_id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`/api/client-notes?vendedor_id=${seller.user_id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      if (recRes.ok) {
+        const json = await recRes.json();
         setSellerRecords(json.records || []);
+      }
+      if (noteRes.ok) {
+        const nJson = await noteRes.json();
+        setSellerClientNotes(nJson.notes || []);
       }
     } catch (err) {
       console.error(err);
@@ -621,6 +632,61 @@ export default function SimpleManagerDashboard() {
               ) : (
                 <div style={{ height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px' }}>
                   Nenhum contato registrado neste período.
+                </div>
+              )}
+            </div>
+
+            {/* Observações Individuais de Clientes Cadastradas */}
+            <div style={{ marginBottom: '24px' }}>
+              <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#0f2d59', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>👥 Clientes com Observações Individuais</span>
+                <span style={{ fontSize: '11px', backgroundColor: '#e2e8f0', color: '#475569', padding: '2px 8px', borderRadius: '12px' }}>
+                  {sellerClientNotes.length}
+                </span>
+              </h4>
+
+              {sellerClientNotes.length === 0 ? (
+                <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0, fontStyle: 'italic' }}>
+                  Nenhum cliente individual detalhado por este colaborador.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {sellerClientNotes.map(note => (
+                    <div
+                      key={note.id}
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: '10px',
+                        backgroundColor: note.status === 'fechou' ? '#fffbeb' : '#f8fafc',
+                        border: note.status === 'fechou' ? '1px solid #fde68a' : '1px solid #e2e8f0'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <strong style={{ fontSize: '13px', color: '#0f2d59' }}>{note.nome_cliente}</strong>
+                          <span style={{
+                            fontSize: '10px',
+                            fontWeight: '800',
+                            padding: '2px 6px',
+                            borderRadius: '6px',
+                            backgroundColor: note.status === 'fechou' ? '#fef3c7' : '#ecfdf5',
+                            color: note.status === 'fechou' ? '#b45309' : '#059669',
+                            border: `1px solid ${note.status === 'fechou' ? '#fde68a' : '#a7f3d0'}`
+                          }}>
+                            {note.status === 'fechou' ? '⭐ NF (Fechou)' : note.status === 'atendeu' ? 'Atendeu' : 'Não Atendeu'}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                          {note.data ? note.data.split('-').reverse().join('/') : ''}
+                        </span>
+                      </div>
+                      {note.observacao && (
+                        <p style={{ margin: 0, fontSize: '12px', color: note.status === 'fechou' ? '#92400e' : '#475569' }}>
+                          {note.observacao}
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

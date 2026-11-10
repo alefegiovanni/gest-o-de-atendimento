@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, CheckCircle, Clock, Calendar, ArrowRight, MessageSquare, PhoneCall, Trash2, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, CheckCircle, Clock, Calendar, ArrowRight, MessageSquare, PhoneCall, Trash2, AlertCircle, ChevronDown, ChevronUp, Plus, UserCheck } from 'lucide-react';
 
 export default function SimpleSellerDashboard({ user }) {
   const [data, setData] = useState(null);
@@ -13,6 +13,82 @@ export default function SimpleSellerDashboard({ user }) {
   const [vendas, setVendas] = useState('');
   const [observacao, setObservacao] = useState('');
   const [showAllHistory, setShowAllHistory] = useState(false);
+
+  // Observações individuais de clientes
+  const [clientNotes, setClientNotes] = useState([]);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientStatus, setNewClientStatus] = useState('fechou'); // 'fechou', 'atendeu', 'nao_atendeu'
+  const [newClientObs, setNewClientObs] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+  const [showAddNoteForm, setShowAddNoteForm] = useState(false);
+
+  const fetchClientNotes = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/client-notes?data=${todayStr}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setClientNotes(json.notes || []);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar notas de clientes:', err);
+    }
+  };
+
+  const handleAddClientNote = async (e) => {
+    e.preventDefault();
+    if (!newClientName.trim()) return;
+
+    setSavingNote(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/client-notes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          data: todayStr,
+          nome_cliente: newClientName.trim(),
+          status: newClientStatus,
+          observacao: newClientObs.trim()
+        })
+      });
+
+      if (res.ok) {
+        setNewClientName('');
+        setNewClientObs('');
+        setShowAddNoteForm(false);
+        await fetchClientNotes();
+      } else {
+        const json = await res.json();
+        alert(json.error || 'Erro ao adicionar cliente');
+      }
+    } catch (err) {
+      alert(err.message || 'Erro ao salvar');
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleDeleteClientNote = async (noteId) => {
+    if (!window.confirm('Deseja excluir esta observação de cliente?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/client-notes/${noteId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setClientNotes(prev => prev.filter(n => n.id !== noteId));
+      }
+    } catch (err) {
+      alert('Erro ao excluir observação');
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -44,6 +120,7 @@ export default function SimpleSellerDashboard({ user }) {
 
   useEffect(() => {
     fetchData();
+    fetchClientNotes();
   }, []);
 
   const handleSubmit = async (e) => {
@@ -363,6 +440,217 @@ export default function SimpleSellerDashboard({ user }) {
             <span>{saving ? 'Gravando...' : (isFilled ? 'Atualizar Registro' : 'Salvar Registro de Hoje')}</span>
           </button>
         </form>
+      </div>
+
+      {/* BLOCO: OBSERVAÇÕES INDIVIDUAIS DE CLIENTES (OPÇÃO 3) */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        padding: '24px',
+        marginBottom: '24px',
+        border: '1.5px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+          <div>
+            <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f2d59', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>👥 Observações Individuais de Clientes</span>
+              <span style={{ fontSize: '11px', backgroundColor: '#e2e8f0', color: '#475569', padding: '2px 8px', borderRadius: '12px' }}>
+                {clientNotes.length}
+              </span>
+            </h3>
+            <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
+              Anote o que aconteceu com cada cliente específico (especialmente negócios fechados).
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowAddNoteForm(!showAddNoteForm)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 14px',
+              backgroundColor: showAddNoteForm ? '#f1f5f9' : '#0f2d59',
+              color: showAddNoteForm ? '#334155' : '#ffffff',
+              borderRadius: '8px',
+              border: 'none',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: 'pointer'
+            }}
+          >
+            <Plus size={16} />
+            <span>{showAddNoteForm ? 'Fechar Formulário' : '+ Adicionar Cliente'}</span>
+          </button>
+        </div>
+
+        {/* Formulário de Adicionar Observação de Cliente */}
+        {showAddNoteForm && (
+          <form onSubmit={handleAddClientNote} style={{
+            backgroundColor: '#f8fafc',
+            border: '1px solid #cbd5e1',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '16px'
+          }}>
+            <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#0f2d59', margin: '0 0 12px 0' }}>
+              Nova Observação de Cliente
+            </h4>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: '10px', marginBottom: '10px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>
+                  Nome do Cliente
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Carlos Eduardo"
+                  value={newClientName}
+                  onChange={(e) => setNewClientName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>
+                  Status
+                </label>
+                <select
+                  value={newClientStatus}
+                  onChange={(e) => setNewClientStatus(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    backgroundColor: '#ffffff',
+                    fontWeight: '700',
+                    color: newClientStatus === 'fechou' ? '#b45309' : '#059669',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="fechou">⭐ NF (Fechou)</option>
+                  <option value="atendeu">Atendeu / Em conversa</option>
+                  <option value="nao_atendeu">Não Atendeu</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>
+                Observação / Detalhes (Cota, valor, entrada, o que conversou)
+              </label>
+              <textarea
+                rows={2}
+                placeholder="Ex: Fechou cota imobiliária de 200k, entrada no PIX paga hoje."
+                value={newClientObs}
+                onChange={(e) => setNewClientObs(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13px',
+                  outline: 'none',
+                  resize: 'vertical',
+                  fontFamily: 'inherit'
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={savingNote}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: '#059669',
+                color: '#ffffff',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: savingNote ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {savingNote ? 'Salvando...' : 'Salvar Observação'}
+            </button>
+          </form>
+        )}
+
+        {/* Lista de Clientes com Observações Registradas Hoje */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {clientNotes.length === 0 ? (
+            <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0, fontStyle: 'italic' }}>
+              Nenhuma observação de cliente adicionada hoje. Clique em "+ Adicionar Cliente" acima.
+            </p>
+          ) : (
+            clientNotes.map(n => (
+              <div
+                key={n.id}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  backgroundColor: n.status === 'fechou' ? '#fffbeb' : '#f8fafc',
+                  border: n.status === 'fechou' ? '1px solid #fde68a' : '1px solid #e2e8f0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  gap: '12px'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <strong style={{ fontSize: '14px', color: '#0f2d59' }}>{n.nome_cliente}</strong>
+                    <span style={{
+                      fontSize: '10px',
+                      fontWeight: '800',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      backgroundColor: n.status === 'fechou' ? '#fef3c7' : '#ecfdf5',
+                      color: n.status === 'fechou' ? '#b45309' : '#059669',
+                      border: `1px solid ${n.status === 'fechou' ? '#fde68a' : '#a7f3d0'}`
+                    }}>
+                      {n.status === 'fechou' ? '⭐ NF (Fechou)' : n.status === 'atendeu' ? 'Atendeu' : 'Não Atendeu'}
+                    </span>
+                  </div>
+                  {n.observacao && (
+                    <p style={{ margin: 0, fontSize: '13px', color: n.status === 'fechou' ? '#92400e' : '#475569' }}>
+                      {n.observacao}
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleDeleteClientNote(n.id)}
+                  title="Excluir esta observação"
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    padding: '4px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {/* Histórico Recente com Opção de Exclusão */}

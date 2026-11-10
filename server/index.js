@@ -373,6 +373,100 @@ app.post('/api/records', authenticateToken, async (req, res) => {
   }
 });
 
+// ---------------- ROTAS DE OBSERVAÇÕES INDIVIDUAIS DE CLIENTES (Opção 3) ----------------
+
+// Listar observações de clientes (por data ou vendedor)
+app.get('/api/client-notes', authenticateToken, async (req, res) => {
+  const { vendedor_id, data } = req.query;
+  let targetUserId = req.user.id;
+
+  if (req.user.perfil === 'gerente') {
+    if (vendedor_id && vendedor_id !== 'todos') {
+      targetUserId = Number(vendedor_id);
+    } else if (vendedor_id === 'todos' || !vendedor_id) {
+      targetUserId = null;
+    }
+  }
+
+  try {
+    let query = `
+      SELECT cn.*, u.nome_completo, u.primeiro_nome
+      FROM client_notes cn
+      JOIN users u ON u.id = cn.user_id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (targetUserId) {
+      params.push(targetUserId);
+      query += ` AND cn.user_id = $${params.length}`;
+    }
+
+    if (data) {
+      params.push(data);
+      query += ` AND cn.data = $${params.length}`;
+    }
+
+    query += ` ORDER BY cn.id DESC`;
+
+    const result = await db.query(query, params);
+    res.json({ notes: result.rows });
+  } catch (err) {
+    console.error('Erro ao listar client_notes:', err);
+    res.status(500).json({ error: 'Erro ao carregar notas dos clientes.' });
+  }
+});
+
+// Criar observação individual de cliente
+app.post('/api/client-notes', authenticateToken, async (req, res) => {
+  const { nome_cliente, status, observacao, data } = req.body;
+
+  if (!nome_cliente || !nome_cliente.trim()) {
+    return res.status(400).json({ error: 'Informe o nome do cliente.' });
+  }
+
+  const dataNota = data || new Date().toISOString().split('T')[0];
+  const statusNota = status || 'fechou';
+  const obsTexto = observacao ? observacao.trim() : '';
+
+  try {
+    const insertRes = await db.query(`
+      INSERT INTO client_notes (user_id, data, nome_cliente, status, observacao)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `, [req.user.id, dataNota, nome_cliente.trim(), statusNota, obsTexto]);
+
+    return res.json({ message: 'Observação do cliente salva com sucesso!', note: insertRes.rows[0] });
+  } catch (err) {
+    console.error('Erro ao salvar client_note:', err);
+    res.status(500).json({ error: 'Erro ao salvar observação do cliente.' });
+  }
+});
+
+// Excluir observação individual de cliente
+app.delete('/api/client-notes/:id', authenticateToken, async (req, res) => {
+  const noteId = Number(req.params.id);
+
+  try {
+    const existingRes = await db.query('SELECT * FROM client_notes WHERE id = $1', [noteId]);
+    const existing = existingRes.rows[0];
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Observação não encontrada.' });
+    }
+
+    if (req.user.perfil !== 'gerente' && existing.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Você só pode excluir suas próprias observações.' });
+    }
+
+    await db.query('DELETE FROM client_notes WHERE id = $1', [noteId]);
+    return res.json({ message: 'Observação excluída com sucesso!' });
+  } catch (err) {
+    console.error('Erro ao excluir client_note:', err);
+    res.status(500).json({ error: 'Erro ao excluir observação.' });
+  }
+});
+
 // Excluir próprio registro diário
 app.delete('/api/records/:id', authenticateToken, async (req, res) => {
   const recordId = Number(req.params.id);
