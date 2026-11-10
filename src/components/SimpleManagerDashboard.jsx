@@ -19,6 +19,29 @@ export default function SimpleManagerDashboard() {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [feedback, setFeedback] = useState('');
 
+  const handleDeleteSingleRecord = async (recordId, dateStr) => {
+    const formattedDate = dateStr.split('-').reverse().join('/');
+    if (!window.confirm(`Deseja realmente apagar o lançamento do dia ${formattedDate}?`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/records/${recordId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao apagar registro');
+
+      // Atualiza a lista do modal
+      setSellerRecords(prev => prev.filter(r => r.id !== recordId));
+      fetchDashboardData();
+    } catch (err) {
+      alert('Erro: ' + (err.message || 'Falha ao excluir'));
+    }
+  };
+
   const handleDeleteSellerAllRecords = async (seller) => {
     if (!window.confirm(`ATENÇÃO GERENTE: Deseja apagar TODOS os registros de atendimentos de ${seller.nome_completo}? Esta ação não pode ser desfeita.`)) {
       return;
@@ -37,14 +60,12 @@ export default function SimpleManagerDashboard() {
       setSelectedSeller(null);
       fetchDashboardData();
     } catch (err) {
-      alert('Erro: ' + err.message);
+      alert('Erro: ' + (err.message || 'Falha ao excluir'));
     }
   };
 
   const handleDeleteAllTeamRecords = async () => {
-    const confirmation = window.prompt("ATENÇÃO MÁXIMA: Você está prestes a APAGAR TODOS OS REGISTROS DE TODA A EQUIPE.\n\nDigite 'ZERAR' para confirmar:");
-    if (confirmation !== 'ZERAR') {
-      if (confirmation !== null) alert("Operação cancelada. A palavra 'ZERAR' não foi digitada corretamente.");
+    if (!window.confirm("ATENÇÃO MÁXIMA: Deseja realmente APAGAR TODOS OS REGISTROS DE TODA A EQUIPE?")) {
       return;
     }
 
@@ -61,7 +82,7 @@ export default function SimpleManagerDashboard() {
       setSelectedSeller(null);
       fetchDashboardData();
     } catch (err) {
-      alert('Erro: ' + err.message);
+      alert('Erro: ' + (err.message || 'Falha ao zerar'));
     }
   };
 
@@ -477,36 +498,55 @@ export default function SimpleManagerDashboard() {
               )}
             </div>
 
-            {/* Histórico Recente de Lançamentos */}
+            {/* Histórico Recente de Lançamentos com Exclusão Individual */}
             <div>
               <h4 style={{ fontSize: '13px', fontWeight: '700', color: '#0f2d59', margin: '0 0 10px 0' }}>
-                Últimos Lançamentos Registrados
+                Lançamentos do Funcionário (Clique na lixeira para apagar um específico)
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {sellerRecords.slice(0, 5).map(rec => (
+                {sellerRecords.slice(0, 15).map(rec => (
                   <div
                     key={rec.id}
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      padding: '8px 12px',
+                      padding: '10px 14px',
                       borderRadius: '8px',
                       backgroundColor: '#f8fafc',
-                      fontSize: '12px',
+                      fontSize: '13px',
                       border: '1px solid #f1f5f9'
                     }}
                   >
-                    <span style={{ fontWeight: '600', color: '#334155' }}>
+                    <span style={{ fontWeight: '700', color: '#334155' }}>
                       {rec.data.split('-').reverse().join('/')}
                     </span>
-                    <div style={{ display: 'flex', gap: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                       <span style={{ color: '#64748b' }}>
                         Contatos: <strong style={{ color: '#0f2d59' }}>{rec.contatos}</strong>
                       </span>
                       <span style={{ color: '#64748b' }}>
                         Atenderam: <strong style={{ color: '#059669' }}>{rec.atendimentos}</strong>
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSingleRecord(rec.id, rec.data)}
+                        title="Apagar apenas este lançamento específico"
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          color: '#94a3b8',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                        onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </div>
                 ))}
