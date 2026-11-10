@@ -439,8 +439,6 @@ export default function Login({ onLoginSuccess }) {
                   <input
                     type="password"
                     maxLength={6}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
                     value={codigoAcesso}
                     onChange={(e) => setCodigoAcesso(e.target.value.replace(/\D/g, ''))}
                     placeholder="••••••"
